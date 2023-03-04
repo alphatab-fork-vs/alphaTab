@@ -57,6 +57,7 @@ import { WebPlatform } from '@src/platform/javascript/WebPlatform';
 import { IntersectionObserverPolyfill } from '@src/platform/javascript/IntersectionObserverPolyfill';
 import { AlphaSynthWebWorklet } from '@src/platform/javascript/AlphaSynthAudioWorkletOutput';
 import { AlphaTabError, AlphaTabErrorType } from './AlphaTabError';
+import { CanvasLike, WebRasterCanvas } from './platform/javascript/WebRasterCanvas';
 
 export class LayoutEngineFactory {
     public readonly vertical: boolean;
@@ -376,6 +377,32 @@ export class Environment {
             'html5',
             new RenderEngineFactory(false, () => {
                 return new Html5Canvas();
+            })
+        );
+    }
+
+    
+    /**
+     * Enables the usage of a 3rd party canvas rendering library like skia-canvas. 
+     * @param engineName The name under which the library will be registered. 
+     * This name will need to be specified as engine while rendering in the core settings.
+     * @param alphaTabMusicFontName The name which will be used as music font when rendering. 
+     * Depending on the used library the Music font (e.g. Bravura) will need registration. 
+     * @param musicFontSize The default font size that will be specified for rendering glyphs. 
+     * (Default for Bravura: 34)
+     * @param canvasFactory The factory function to create a new instance of a canvas 
+     * which will be used for drawing the music sheet. 
+     * @target web
+     */
+    public static enableNodeCanvas(
+        engineName: string,
+        musicFontName: string,
+        musicFontSize: number,
+        canvasFactory: (width:number, height:number) => CanvasLike) {
+        Environment.renderEngines.set(
+            engineName,
+            new RenderEngineFactory(false, () => {
+                return new WebRasterCanvas(musicFontName, musicFontSize, canvasFactory);
             })
         );
     }

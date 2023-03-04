@@ -1,5 +1,6 @@
 import { IOHelper } from '@src/io/IOHelper';
-  
+import * as fs from 'fs';
+
 /**
  * @partial
  */
@@ -29,46 +30,29 @@ export class TestPlatform {
      * @partial
      */
     public static loadFile(path: string): Promise<Uint8Array> {
-        return new Promise<Uint8Array>((resolve, reject) => {
-            let x: XMLHttpRequest = new XMLHttpRequest();
-            x.open('GET', '/base/' + path, true, null, null);
-            x.responseType = 'arraybuffer';
-            x.onreadystatechange = () => {
-                if (x.readyState === XMLHttpRequest.DONE) {
-                    if (x.status === 200) {
-                        let ab: ArrayBuffer = x.response;
-                        let data: Uint8Array = new Uint8Array(ab);
-                        resolve(data);
-                    } else {
-                        let response: string = x.response;
-                        reject('Could not find file: ' + path + ', received:' + response);
-                    }
-                }
-            };
-            x.send();
-        });
+        return fs.promises.readFile(path);
     }
 
     /**
      * @target web
      * @partial
      */
-    public static listDirectory(path: string): Promise<string[]> {
-        return new Promise<string[]>((resolve, reject) => {
-            let x: XMLHttpRequest = new XMLHttpRequest();
-            x.open('GET', 'http://localhost:8090/list-files?dir=' + path, true, null, null);
-            x.responseType = 'text';
-            x.onreadystatechange = () => {
-                if (x.readyState === XMLHttpRequest.DONE) {
-                    if (x.status === 200) {
-                        resolve(JSON.parse(x.responseText));
-                    } else {
-                        reject('Could not find path: ' + path + ', received:' + x.responseText);
-                    }
+    public static async listDirectory(path: string): Promise<string[]> {
+        const dir = await fs.promises.opendir(path);
+        try {
+            const entries = [];
+            while (true) {
+                const entry = await dir.read();
+                if (entry) {
+                    entries.push(entry.name);
+                } else {
+                    break;
                 }
-            };
-            x.send();
-        });
+            }
+            return entries;
+        } finally {
+            await dir.close();
+        }
     }
 
     public static async loadFileAsString(path: string): Promise<string> {

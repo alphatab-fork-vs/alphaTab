@@ -10,6 +10,7 @@ import { AlphaTexImporter } from '@src/importer/AlphaTexImporter';
 import { ByteBuffer } from '@src/io/ByteBuffer';
 import { PixelMatch, PixelMatchOptions } from '@test/visualTests/PixelMatch';
 import { JsonConverter } from '@src/model/JsonConverter';
+import { assert } from 'chai';
 
 /**
  * @partial
@@ -38,7 +39,7 @@ export class VisualTestHelper {
                 triggerResize
             );
         } catch (e) {
-            fail(`Failed to run visual test ${e}`);
+            assert.fail(`Failed to run visual test ${e}`);
         }
     }
 
@@ -65,7 +66,7 @@ export class VisualTestHelper {
                 tolerancePercent
             );
         } catch (e) {
-            fail(`Failed to run visual test ${e}`);
+            assert.fail(`Failed to run visual test ${e}`);
         }
     }
 
@@ -88,7 +89,7 @@ export class VisualTestHelper {
 
             await VisualTestHelper.runVisualTestScore(score, referenceFileName, settings, tracks, message, tolerancePercent);
         } catch (e) {
-            fail(`Failed to run visual test ${e}`);
+            assert.fail(`Failed to run visual test ${e}`);
         }
     }
 
@@ -299,7 +300,7 @@ export class VisualTestHelper {
                 }
             }
         } catch (e) {
-            fail(`Failed to run visual test ${e}`);
+            assert.fail(`Failed to run visual test ${e}`);
         }
     }
 
@@ -457,222 +458,96 @@ export class VisualTestHelper {
             'expected-image'
         );
 
-        jasmine.addAsyncMatchers({
-            toEqualVisually: VisualTestHelper.toEqualVisually
-        });
 
-        await (expectAsync(actual) as any).toEqualVisually(expected, referenceFileName, message, tolerancePercent);
+        await VisualTestHelper.expectToEqualVisuallyAsync(actual, expected, referenceFileName, message, tolerancePercent);
     }
 
     /**
      * @target web
      * @partial
      */
-    private static toEqualVisually(_utils: jasmine.MatchersUtil): jasmine.CustomAsyncMatcher {
-        return {
-            async compare(
+    private static async expectToEqualVisuallyAsync(
                 actual: HTMLCanvasElement,
                 expected: HTMLCanvasElement,
                 expectedFileName: string,
                 message?: string,
                 tolerancePercent: number = 1
-            ): Promise<jasmine.CustomMatcherResult> {
-                const sizeMismatch = expected.width !== actual.width || expected.height !== actual.height;
-                const oldActual = actual;
-                if (sizeMismatch) {
-                    const newActual = document.createElement('canvas');
-                    newActual.width = expected.width;
-                    newActual.height = expected.height;
+            ): Promise<void> {
+        const sizeMismatch = expected.width !== actual.width || expected.height !== actual.height;
+        const oldActual = actual;
+        if (sizeMismatch) {
+            const newActual = document.createElement('canvas');
+            newActual.width = expected.width;
+            newActual.height = expected.height;
 
-                    const newActualContext = newActual.getContext('2d')!;
-                    newActualContext.drawImage(actual, 0, 0);
-                    newActualContext.strokeStyle = 'red';
-                    newActualContext.lineWidth = 2;
-                    newActualContext.strokeRect(0, 0, newActual.width, newActual.height);
+            const newActualContext = newActual.getContext('2d')!;
+            newActualContext.drawImage(actual, 0, 0);
+            newActualContext.strokeStyle = 'red';
+            newActualContext.lineWidth = 2;
+            newActualContext.strokeRect(0, 0, newActual.width, newActual.height);
 
-                    actual = newActual;
-                }
-
-                const actualImageData = actual.getContext('2d')!.getImageData(0, 0, actual.width, actual.height);
-
-                const expectedImageData = expected
-                    .getContext('2d')!
-                    .getImageData(0, 0, expected.width, expected.height);
-
-                // do visual comparison
-                const diff = document.createElement('canvas');
-                diff.width = expected.width;
-                diff.height = expected.height;
-                const diffContext = diff.getContext('2d')!;
-                const diffImageData = diffContext.createImageData(diff.width, diff.height);
-                const result: jasmine.CustomMatcherResult = {
-                    pass: true,
-                    message: ''
-                };
-
-                try {
-                    let match = PixelMatch.match(
-                        new Uint8Array(expectedImageData.data.buffer),
-                        new Uint8Array(actualImageData.data.buffer),
-                        new Uint8Array(diffImageData.data.buffer),
-                        expected.width,
-                        expected.height,
-                        {
-                            threshold: 0.3,
-                            includeAA: false,
-                            diffMask: true,
-                            alpha: 1
-                        } as PixelMatchOptions
-                    );
-
-                    diffContext.putImageData(diffImageData, 0, 0);
-
-                    // only pixels that are not transparent are relevant for the diff-ratio
-                    let totalPixels = match.totalPixels - match.transparentPixels;
-                    let percentDifference = (match.differentPixels / totalPixels) * 100;
-                    result.pass = percentDifference < tolerancePercent;
-                    // result.pass = match.differentPixels === 0;
-                    result.message = '';
-
-                    if (!result.pass) {
-                        let percentDifferenceText = percentDifference.toFixed(2);
-                        result.message = `Difference between original and new image is too big: ${match.differentPixels}/${totalPixels} (${percentDifferenceText}%)`;
-                        // await VisualTestHelper.saveFiles(expectedFileName, expected, oldActual, diff);
-                    }
-
-                    if (sizeMismatch) {
-                        result.message += `Image sizes do not match: expected ${expected.width}x${expected.height} but got ${oldActual.width}x${oldActual.height}`;
-                        result.pass = false;
-                    }
-                } catch (e) {
-                    result.pass = false;
-                    result.message = `Error comparing images: ${e}, ${message}`;
-                }
-
-                const jasmineRequire = Environment.globalThis.jasmineRequire;
-                if (!result.pass && jasmineRequire.html) {
-                    const errorMessage = `${result.message} (${message})`;
-                    const dom = document.createElement('div');
-                    dom.innerHTML = `
-                        <strong>Error:</strong> ${errorMessage}<br/>
-                        <div class="comparer" style="border: 1px solid #000">
-                            <div class="expected"></div>
-                            <div class="actual"></div>
-                            <div class="diff"></div>
-                        </div>
-                    `;
-                    actual.ondblclick = () => {
-                        const a = document.createElement('a');
-                        a.href = oldActual.toDataURL('image/png');
-                        a.download = expected.dataset.filename ?? 'reference.png';
-                        document.body.appendChild(a);
-                        a.click();
-                    };
-
-                    dom.querySelector('.expected')!.appendChild(expected);
-                    dom.querySelector('.actual')!.appendChild(actual);
-                    dom.querySelector('.diff')!.appendChild(diff);
-                    VisualTestHelper.initComparer(dom.querySelector('.comparer'));
-
-                    (dom as any).toString = function () {
-                        return errorMessage;
-                    };
-                    (dom as any)[Symbol.toPrimitive] = function () {
-                        return errorMessage;
-                    };
-
-                    (result as any).message = dom;
-                }
-
-                return result;
-            }
-        };
-    }
-
-    /**
-     * @target web
-     * @partial
-     */
-    private static initComparer(el: HTMLElement | null) {
-        if (!el) {
-            return;
+            actual = newActual;
         }
-        const ex = el.querySelector('.expected') as HTMLDivElement;
-        const ac = el.querySelector('.actual') as HTMLDivElement;
-        const df = el.querySelector('.diff') as HTMLDivElement;
 
-        const exCanvas = ex.querySelector('canvas')!;
-        const acCanvas = ac.querySelector('canvas')!;
+        const actualImageData = actual.getContext('2d')!.getImageData(0, 0, actual.width, actual.height);
 
-        const width = Math.max(exCanvas.width, acCanvas.width);
-        const height = Math.max(exCanvas.height, acCanvas.height);
+        const expectedImageData = expected
+            .getContext('2d')!
+            .getImageData(0, 0, expected.width, expected.height);
 
-        const controlsHeight = 60;
-
-        el.style.width = width + 'px';
-        el.style.height = height + controlsHeight + 'px';
-        el.style.position = 'relative';
-
-        ex.style.width = width + 'px';
-        ex.style.height = height + 'px';
-        ex.style.background = '#FFF';
-        ex.style.position = 'absolute';
-        ex.style.left = '0';
-        ex.style.top = controlsHeight + 'px';
-
-        ac.style.width = width / 2 + 'px';
-        ac.style.height = height + 'px';
-        ac.style.background = '#FFF';
-        ac.style.position = 'absolute';
-        ac.style.right = '0';
-        ac.style.top = controlsHeight + 'px';
-        ac.style.boxShadow = '-7px 0 10px -5px rgba(0,0,0,.5)';
-        ac.style.overflow = 'hidden';
-        acCanvas.style.position = 'absolute';
-        acCanvas.style.right = '0';
-        acCanvas.style.top = '0';
-
-        df.style.display = 'none';
-        df.style.width = width + 'px';
-        df.style.height = height + 'px';
-        df.style.background = '#FFF';
-        df.style.position = 'absolute';
-        df.style.left = '0';
-        df.style.top = controlsHeight + 'px';
-
-        const slider = document.createElement('input');
-        slider.type = 'range';
-        slider.min = '0';
-        slider.max = '1';
-        slider.step = '0.001';
-        slider.value = '0.5';
-        slider.style.position = 'absolute';
-        slider.style.top = '30px';
-        slider.style.right = '0';
-        slider.style.left = '0';
-        slider.style.width = '100%';
-        slider.oninput = () => {
-            ac.style.width = width * (1 - parseFloat(slider.value)) + 'px';
+        // do visual comparison
+        const diff = document.createElement('canvas');
+        diff.width = expected.width;
+        diff.height = expected.height;
+        const diffContext = diff.getContext('2d')!;
+        const diffImageData = diffContext.createImageData(diff.width, diff.height);
+        const result = {
+            pass: true,
+            message: ''
         };
-        el.appendChild(slider);
 
-        const diffToggleLabel = document.createElement('label');
-        diffToggleLabel.style.position = 'absolute';
-        diffToggleLabel.style.left = '0';
-        diffToggleLabel.style.top = '0';
+        try {
+            let match = PixelMatch.match(
+                new Uint8Array(expectedImageData.data.buffer),
+                new Uint8Array(actualImageData.data.buffer),
+                new Uint8Array(diffImageData.data.buffer),
+                expected.width,
+                expected.height,
+                {
+                    threshold: 0.3,
+                    includeAA: false,
+                    diffMask: true,
+                    alpha: 1
+                } as PixelMatchOptions
+            );
 
-        const diffToggle = document.createElement('input');
-        diffToggle.type = 'checkbox';
-        diffToggleLabel.appendChild(diffToggle);
-        diffToggleLabel.appendChild(document.createTextNode('Show Diff'));
-        diffToggle.onchange = () => {
-            if (diffToggle.checked) {
-                df.style.display = 'block';
-            } else {
-                df.style.display = 'none';
+            diffContext.putImageData(diffImageData, 0, 0);
+
+            // only pixels that are not transparent are relevant for the diff-ratio
+            let totalPixels = match.totalPixels - match.transparentPixels;
+            let percentDifference = (match.differentPixels / totalPixels) * 100;
+            result.pass = percentDifference < tolerancePercent;
+            // result.pass = match.differentPixels === 0;
+            result.message = '';
+
+            if (!result.pass) {
+                let percentDifferenceText = percentDifference.toFixed(2);
+                result.message = `Difference between original and new image is too big: ${match.differentPixels}/${totalPixels} (${percentDifferenceText}%)`;
+                // await VisualTestHelper.saveFiles(expectedFileName, expected, oldActual, diff);
             }
-        };
-        el.appendChild(diffToggleLabel);
+
+            if (sizeMismatch) {
+                result.message += `Image sizes do not match: expected ${expected.width}x${expected.height} but got ${oldActual.width}x${oldActual.height}`;
+                result.pass = false;
+            }
+        } catch (e) {
+            result.pass = false;
+            result.message = `Error comparing images: ${e}, ${message}`;
+        }
+
+        if(!result.pass){
+            throw new Error(result.message);
+        }
     }
 
     /**
