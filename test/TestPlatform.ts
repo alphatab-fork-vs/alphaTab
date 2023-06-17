@@ -1,5 +1,6 @@
 import { IOHelper } from '@src/io/IOHelper';
 import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * @partial
@@ -9,20 +10,10 @@ export class TestPlatform {
      * @target web
      * @partial
      */
-    public static saveFile(name: string, data: Uint8Array): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            let x: XMLHttpRequest = new XMLHttpRequest();
-            x.open('POST', 'http://localhost:8090/save-file/', true);
-            x.onload = () => {
-                resolve();
-            };
-            x.onerror = () => {
-                reject();
-            };
-            const form = new FormData();
-            form.append('file', new Blob([data]), name);
-            x.send(form);
-        });
+    public static async saveFile(name: string, data: Uint8Array): Promise<void> {
+        const directory = path.dirname(name);
+        await fs.promises.mkdir(directory, { recursive: true })
+        await fs.promises.writeFile(name, data);
     }
 
     /**

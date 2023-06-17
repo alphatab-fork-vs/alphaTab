@@ -56,6 +56,7 @@
         "test-kotlin-ci": "cd src.kotlin/alphaTab && gradlew testReleaseUnitTest"
     },
     "devDependencies": {
+        "@napi-rs/canvas": "^0.1.41",
         "@rollup/plugin-commonjs": "^25.0.0",
         "@types/chai": "^4.3.4",
         "@types/mocha": "^10.0.1",
@@ -71,7 +72,6 @@
         "rollup-plugin-copy": "^3.4.0",
         "rollup-plugin-dts": "^4.2.2",
         "rollup-plugin-license": "^3.0.0",
-        "rollup-plugin-serve": "^2.0.0",
         "rollup-plugin-terser": "^7.0.2",
         "skia-canvas": "^1.0.1",
         "terser": "^5.13.1",

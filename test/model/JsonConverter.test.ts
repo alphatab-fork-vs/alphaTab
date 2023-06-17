@@ -15,8 +15,8 @@ import { assert, expect } from "chai";
 
 describe('JsonConverterTest', () => {
     const loadScore: (name: string) => Promise<Score | null> = async (name: string): Promise<Score | null> => {
-        const data = await TestPlatform.loadFile('test-data/' + name);
         try {
+            const data = await TestPlatform.loadFile('test-data/' + name);
             return ScoreLoader.loadScoreFromBytes(data);
         }
         catch (e) {

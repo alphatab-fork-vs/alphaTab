@@ -12,8 +12,20 @@ import { Settings } from '@src/Settings';
  * @target web
  */
 export interface CanvasLike {
-    getContext(contextId: "2d"): CanvasRenderingContext2D | null;
+    getContext(contextId: "2d"): CanvasLikeRenderingContext2D | null;
+    readonly width: number;
+    readonly height: number;
 }
+
+/**
+ * @target web
+ */
+export interface CanvasLikeRenderingContext2D extends Omit<
+    CanvasRenderingContext2D,
+    'drawImage' | 'createPattern' | 'getTransform' | 'drawFocusIfNeeded' | 'scrollPathIntoView' | 'canvas'
+> {
+}
+
 
 /**
  * A canvas implementation for objects supporting 
@@ -21,9 +33,9 @@ export interface CanvasLike {
  */
 export class WebRasterCanvas implements ICanvas {
     private _measureCanvas: CanvasLike;
-    private _measureContext: CanvasRenderingContext2D;
+    private _measureContext: CanvasLikeRenderingContext2D;
     private _canvas: CanvasLike | null = null;
-    private _context!: CanvasRenderingContext2D;
+    private _context!: CanvasLikeRenderingContext2D;
     private _color: Color = new Color(0, 0, 0, 0xff);
     private _font: Font = new Font('Arial', 10, FontStyle.Plain);
     private _musicFont: Font;
@@ -32,8 +44,8 @@ export class WebRasterCanvas implements ICanvas {
 
     public settings!: Settings;
 
-    public constructor(musicFontFamily:string, musicFontSize: number,
-        canvasFactory: (width:number, height:number) => CanvasLike) {
+    public constructor(musicFontFamily: string, musicFontSize: number,
+        canvasFactory: (width: number, height: number) => CanvasLike) {
         this._canvasFactory = canvasFactory;
         this._musicFont = new Font(musicFontFamily, musicFontSize);
         this._measureCanvas = canvasFactory(10, 10);

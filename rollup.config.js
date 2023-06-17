@@ -3,7 +3,7 @@ const terser = require('rollup-plugin-terser').terser;
 const dts = require('rollup-plugin-dts').default;
 const copy = require('rollup-plugin-copy');
 const license = require('rollup-plugin-license');
-const serve = require('rollup-plugin-serve');
+const server = require('./rollup.server');
 const fs = require('fs');
 
 function getGitBranch() {
@@ -89,10 +89,8 @@ module.exports = [
             }),
 
             isWatch &&
-                serve({
-                    open: true,
+                server({
                     openPage: '/playground/control.html',
-                    contentBase: '',
                     port: 8080
                 })
         ]

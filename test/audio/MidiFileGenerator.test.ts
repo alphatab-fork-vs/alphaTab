@@ -32,7 +32,6 @@ import { AlphaSynthMidiFileHandler } from '@src/midi/AlphaSynthMidiFileHandler';
 import { MetaEventType } from '@src/midi/MetaEvent';
 import { MetaDataEvent } from '@src/midi/MetaDataEvent';
 import { AccentuationType, VibratoType } from '@src/model';
-import { VibratoType } from '@src/model';
 import { expect } from 'chai';
 
 describe('MidiFileGeneratorTest', () => {
@@ -47,11 +46,10 @@ describe('MidiFileGeneratorTest', () => {
             Logger.info('Test', `i[${i}] ${actualEvents[i]}`);
             if (i < expectedEvents.length) {
                 expect(expectedEvents[i].equals(actualEvents[i]))
-                    .withContext(`i[${i}] expected[${expectedEvents[i]}] !== actual[${actualEvents[i]}]`)
-                    .toEqual(true);
+                .to.equal(true, `i[${i}] expected[${expectedEvents[i]}] !== actual[${actualEvents[i]}]`);
             }
         }
-        expect(actualEvents.length).toEqual(expectedEvents.length);
+        expect(actualEvents.length).to.equal(expectedEvents.length);
     };
 
     it('full-song', async () => {
@@ -920,12 +918,12 @@ describe('MidiFileGeneratorTest', () => {
         let note1: Note = score.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0];
         let note2: Note = score.tracks[0].staves[0].bars[0].voices[0].beats[1].notes[0];
         // First note has already highest dynamics which is increased due to accentuation
-        expect(note1.dynamics).toBe(DynamicValue.FFF);
-        expect(note1.accentuated).toBe(AccentuationType.Normal);
+        expect(note1.dynamics).to.eq(DynamicValue.FFF);
+        expect(note1.accentuated).to.eq(AccentuationType.Normal);
 
         // Second note has lowest dynamics which is decreased due to ghost note
-        expect(note2.dynamics).toBe(DynamicValue.PPP);
-        expect(note2.isGhost).toBeTrue();
+        expect(note2.dynamics).to.eq(DynamicValue.PPP);
+        expect(note2.isGhost).to.be.true;
 
         let expectedEvents: FlatMidiEvent[] = [
             // channel init
