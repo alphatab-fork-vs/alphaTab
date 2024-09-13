@@ -1,3 +1,16 @@
+/*
+* Original work Copyright (c) 2021 CoderLine - Daniel Kuschny and Contributors
+* Modified work Copyright (c) 2024 Mudalla LLC
+*
+* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v.2.0. If a copy of the MPL was not distributed with this
+* file, you can obtain one at https://www.mozilla.org/MPL/2.0/.
+*
+* Modified by Mudalla LLC on 2024-09-13:
+*   Added minimal modification to allow alphaTab version 1.2.2’s MusicXML importer to:
+*   - Assign a default value Duration.ThirtySecond to note.trillSpeed field
+*   - Parse MusicXML 'trill-mark' nodes and assign their 'trill-step' attribute values to note.trillValue field
+*/
 import { ScoreImporter } from '@src/importer/ScoreImporter';
 import { UnsupportedFormatError } from '@src/importer/UnsupportedFormatError';
 import { AccentuationType } from '@src/model/AccentuationType';
@@ -878,6 +891,21 @@ export class MusicXmlImporter extends ScoreImporter {
                                 break;
                             case 3:
                                 note.beat.tremoloSpeed = Duration.ThirtySecond;
+                                break;
+                        }
+                        break;
+                    case 'trill-mark':
+                        note.trillSpeed = Duration.ThirtySecond;
+                        const trillValue = c.getAttribute('trill-step');
+                        switch(trillValue){
+                            case 'half':
+                                note.trillValue = note.realValue + 1;
+                                break;
+                            case 'whole':
+                                note.trillValue = note.realValue + 2;
+                                break;
+                            default:
+                                note.trillValue = note.realValue + 1;
                                 break;
                         }
                         break;
