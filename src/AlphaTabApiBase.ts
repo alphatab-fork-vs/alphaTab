@@ -1,3 +1,16 @@
+/*
+* Original work Copyright (c) 2021 CoderLine - Daniel Kuschny and Contributors
+* Modified work Copyright (c) 2024 Mudalla LLC
+*
+* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v.2.0. If a copy of the MPL was not distributed with this
+* file, you can obtain one at https://www.mozilla.org/MPL/2.0/.
+*
+* Modified by Mudalla LLC on 2024-12-02:
+* Minimal modification—commenting 3 lines of code to disable alphaTab's default behavior, which 
+* disables an active range selection when a score view touch/click event fires.
+*/
+
 import { AlphaSynthMidiFileHandler } from '@src/midi/AlphaSynthMidiFileHandler';
 import { MidiFileGenerator } from '@src/midi/MidiFileGenerator';
 
@@ -1021,9 +1034,9 @@ export class AlphaTabApiBase<TSettings> {
                         50;
                     this.playbackRange = range;
                 } else {
-                    this._selectionStart = null;
-                    this.playbackRange = null;
-                    this.cursorSelectRange(this._selectionStart, this._selectionEnd);
+                    // this._selectionStart = null;
+                    // this.playbackRange = null;
+                    // this.cursorSelectRange(this._selectionStart, this._selectionEnd);
                 }
             }
         }
